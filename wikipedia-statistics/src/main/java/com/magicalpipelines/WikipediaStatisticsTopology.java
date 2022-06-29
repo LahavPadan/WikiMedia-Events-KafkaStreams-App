@@ -5,6 +5,7 @@ import com.magicalpipelines.serialization.json.JsonSerdes;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -91,7 +92,6 @@ public class WikipediaStatisticsTopology {
   }
 
   public static void mostActiveUsers(String streamName, KStream<String, WikiEvent> stream) {
-
     // System.out.println("YOLO");
     // JsonSerializer<SortedWikiUsers> serializer = new JsonSerializer<>();
     // serializer.serialize("WikiEvents", new SortedWikiUsers());
@@ -114,13 +114,15 @@ public class WikipediaStatisticsTopology {
     /** The logic for aggregating user event is implemented in the SortedWikiStatistic.add method */
     Aggregator<String, WikiUser, SortedWikiUsers> activeUsersAdder =
         (key, user, aggregate) -> {
-          //   System.out.println("JOMANJI " + user.toString());
-          //   try {
-          //     TimeUnit.MINUTES.sleep(1000);
-          //   } catch (InterruptedException e) {
-          //     // TODO Auto-generated catch block
-          //     e.printStackTrace();
-          //   }
+          System.out.println("JOMANJI " + user.toString());
+          try {
+            TimeUnit.MINUTES.sleep(1000);
+          } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+          aggregate.add("name8", new WikiUser("name8", true));
+          aggregate.add("name", new WikiUser("name1", false));
           return aggregate.add("name", new WikiUser("name", false));
           // return aggregate.add(user.getUserName(), user);
         };

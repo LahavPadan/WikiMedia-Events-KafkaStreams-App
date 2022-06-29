@@ -1,7 +1,11 @@
 package com.magicalpipelines;
 
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.magicalpipelines.model.WikiUser;
+import com.magicalpipelines.serialization.json.JsonDeserializer2;
+import com.magicalpipelines.serialization.json.JsonSerializer2;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,14 +15,15 @@ import java.util.stream.Collectors;
 
 public class SortedWikiUsers implements Serializable {
 
-  @SerializedName("StrKeyTree")
+  @JsonProperty("map")
+  @JsonSerialize(using = JsonSerializer2.class)
+  @JsonDeserialize(using = JsonDeserializer2.class, as = WikiUser.class)
   private Map<String, WikiUser> strKeyTree = new HashMap<>();
 
   public SortedWikiUsers add(String name, WikiUser _newRecord) {
-    System.out.println("JOJO " + name);
-
     WikiUser newRecord = new WikiUser(_newRecord);
     WikiUser record = strKeyTree.get(name);
+    System.out.println("JOJO " + record.toString());
     int newScore = newRecord.getScore();
 
     /** previous version of record already exists */

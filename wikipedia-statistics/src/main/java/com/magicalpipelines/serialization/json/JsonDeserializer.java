@@ -1,5 +1,7 @@
 package com.magicalpipelines.serialization.json;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -37,7 +39,17 @@ public class JsonDeserializer<T> implements Deserializer<T> {
       return null;
     }
     Type type = destinationClass != null ? destinationClass : reflectionTypeToken;
-    return gson.fromJson(new String(bytes, StandardCharsets.UTF_8), type);
+    ObjectMapper objectMapper = new ObjectMapper();
+    try {
+      System.out.println(
+          "HOLA"
+              + objectMapper
+                  .readValue(new String(bytes, StandardCharsets.UTF_8), destinationClass)
+                  .toString());
+      return objectMapper.readValue(new String(bytes, StandardCharsets.UTF_8), destinationClass);
+    } catch (JsonProcessingException e) {
+    }
+    return null;
   }
 
   @Override

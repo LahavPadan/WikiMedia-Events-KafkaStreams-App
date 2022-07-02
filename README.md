@@ -27,7 +27,7 @@ Exposing the statistics via a REST API (using Kafka-Streams Interactive-Queries)
 
 ---
 # Kafka Pipeline FlowChart
-![kafkaFlowChart](https://user-images.githubusercontent.com/64014604/176992631-3281cbba-f7f3-43ef-9a08-33a6509f5019.png)
+![kafkaFlowChart](https://user-images.githubusercontent.com/64014604/176992674-0ed659f4-fd33-4177-b383-8f56070668e4.png)
 
 # Running Locally
 The only dependency for running this project is [Docker Compose][docker].

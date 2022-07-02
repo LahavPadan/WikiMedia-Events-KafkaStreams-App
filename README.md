@@ -3,7 +3,7 @@ Gathering statistics from [WikiMedia EventStreams][EventStreams] using **Kafka S
 Exposing the statistics via a REST API (using Kafka-Streams Interactive-Queries).
 
 [EventStreams]: https://stream.wikimedia.org/v2/ui/#/
----
+
 # Kafka Pipeline FlowChart
 ![kafkaFlowChart](https://user-images.githubusercontent.com/64014604/176992674-0ed659f4-fd33-4177-b383-8f56070668e4.png)
 
@@ -49,6 +49,7 @@ $ ./gradlew build
 $ ./gradlew run --info
 
 ```
+---
 
 ## Query the API
 

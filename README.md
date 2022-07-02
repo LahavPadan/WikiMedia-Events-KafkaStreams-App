@@ -7,7 +7,7 @@ Exposing the statistics via a REST API (using Kafka-Streams Interactive-Queries)
 
 ## Query the API
 
-**_NOTE:_** In the url, month can be {hour, week, month, year}Likewise, 'English', which can be any language.
+**_NOTE:_** In the url, month can be {hour, week, month, year}. Likewise, 'English', which can be any language.
 
 ### countPagesCreated
 - curl localhost:7000/api.wikiStats/month/per-language/countPagesCreated
@@ -26,6 +26,10 @@ Exposing the statistics via a REST API (using Kafka-Streams Interactive-Queries)
 - curl localhost:7000/api.wikiStats/month/per-userType/English/mostActivePages 
 
 ---
+# Kafka Pipeline FlowChart
+![kafkaFlowChart](https://user-images.githubusercontent.com/64014604/176992450-0c16f18f-36c3-436a-afd0-3789916f7731.png)
+
+
 # Running Locally
 The only dependency for running this project is [Docker Compose][docker].
 
@@ -59,7 +63,7 @@ $ python3 ./wikiEventProducer.py --bootstrap_server localhost:29092 --topic_name
 Now, to run the Kafka Streams application, simply run:
 
 ```sh
-$ cd $OLDPWD/wikipedia-statistics
+$ cd ./wikipedia-statistics
 
 # build project
 $ ./gradlew build
@@ -73,8 +77,6 @@ $ ./gradlew run --info
 These have been a huge help for me:
 - The book [Mastering Kafka Streams and ksqlDB][book] by Mitch Seymour.
 - Introduction to Apache Kafka with Wikipedia’s EventStreams service article on [Medium][medium].
-- The Chakra-UI Open-Source template: [Horizon UI][Horizon UI].
 
 [book]: https://www.kafka-streams-book.com/
 [medium]: https://towardsdatascience.com/introduction-to-apache-kafka-with-wikipedias-eventstreams-service-d06d4628e8d9
-[Horizon UI]: https://horizon-ui.com/

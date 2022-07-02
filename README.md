@@ -3,28 +3,6 @@ Gathering statistics from [WikiMedia EventStreams][EventStreams] using **Kafka S
 Exposing the statistics via a REST API (using Kafka-Streams Interactive-Queries).
 
 [EventStreams]: https://stream.wikimedia.org/v2/ui/#/
-
-
-## Query the API
-
-**_NOTE:_** In the url, month can be {hour, week, month, year}. Likewise, 'English', which can be any language.
-
-### countPagesCreated
-- curl localhost:7000/api.wikiStats/month/per-language/countPagesCreated
-- curl localhost:7000/api.wikiStats/month/per-userType/countPagesCreated
-
-### countPagesModified
-- curl localhost:7000/api.wikiStats/month/per-language/countPagesModified
-- curl localhost:7000/api.wikiStats/month/per-userType/countPagesModified
-
-### MostActiveUsers
-- curl localhost:7000/api.wikiStats/month/per-language/English/mostActiveUsers 
-- curl localhost:7000/api.wikiStats/month/per-userType/English/mostActiveUsers
-
-### MostActivePages
-- curl localhost:7000/api.wikiStats/month/per-language/English/mostActivePages 
-- curl localhost:7000/api.wikiStats/month/per-userType/English/mostActivePages 
-
 ---
 # Kafka Pipeline FlowChart
 ![kafkaFlowChart](https://user-images.githubusercontent.com/64014604/176992674-0ed659f4-fd33-4177-b383-8f56070668e4.png)
@@ -71,6 +49,28 @@ $ ./gradlew build
 $ ./gradlew run --info
 
 ```
+
+## Query the API
+
+**_NOTE:_** In the url, month can be {hour, week, month, year}. Likewise, 'English', which can be any language.
+
+### countPagesCreated
+- curl localhost:7000/api.wikiStats/month/per-language/countPagesCreated
+- curl localhost:7000/api.wikiStats/month/per-userType/countPagesCreated
+
+### countPagesModified
+- curl localhost:7000/api.wikiStats/month/per-language/countPagesModified
+- curl localhost:7000/api.wikiStats/month/per-userType/countPagesModified
+
+### MostActiveUsers
+- curl localhost:7000/api.wikiStats/month/per-language/English/mostActiveUsers 
+- curl localhost:7000/api.wikiStats/month/per-userType/English/mostActiveUsers
+
+### MostActivePages
+- curl localhost:7000/api.wikiStats/month/per-language/English/mostActivePages 
+- curl localhost:7000/api.wikiStats/month/per-userType/English/mostActivePages 
+
+
 ---
 # Useful Resources
 These have been a huge help for me:

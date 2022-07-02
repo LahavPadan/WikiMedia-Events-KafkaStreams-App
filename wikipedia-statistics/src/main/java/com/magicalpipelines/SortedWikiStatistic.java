@@ -1,76 +1,32 @@
 package com.magicalpipelines;
-
-import com.magicalpipelines.model.TreeValue;
+import com.magicalpipelines.model.WikiUser;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.TreeMap;
+import java.util.Map;
 import java.util.stream.Collectors;
+import com.magicalpipelines.model.TreeValue;
 
-public class SortedWikiStatistic<V extends TreeValue> {
-  private TreeMap<String, V> stringKeyTree = new TreeMap<>();
-  private TreeMap<Integer, TreeMap<String, V>> scoreKeyTree = new TreeMap<>();
-  private TreeMap<String, V> Jello = new TreeMap<>();
+public class SortedWikiStatistic<V extends TreeValue> implements Serializable {
 
-  public SortedWikiStatistic<V> add(final String name, final V newRecord) {
-    V recordooooooooo = Jello.get(name);
+  private Map<String, V> sortedStats = new HashMap<>();
 
-    V record = stringKeyTree.get(name);
-    int newScore = newRecord.getScore();
-
-    /** previous version of record already exists */
-    if (record != null) {
-      System.out.println(record.toString());
-      System.out.println(newRecord.toString());
-      int score = record.getScore();
-
-      /** update scoreKeyTree - remove previous */
-      System.out.println("score " + score);
-      var scoreRecords = scoreKeyTree.get(score);
-      scoreRecords.remove(name);
-      if (scoreRecords.isEmpty()) {
-        scoreKeyTree.remove(score);
-      }
-
-      newScore = score + newScore;
-      newRecord.setScore(newScore);
+  public SortedWikiStatistic<V> add(String name, final V newRecord) {
+    if (sortedStats.containsKey(name)) {
+      newRecord.setScore(newRecord.getScore() + sortedStats.get(name).getScore());
     }
-    // update trees
-
-    /** update stringKeyTree - insert */
-    stringKeyTree.put(name, newRecord);
-    Jello.put(name, newRecord);
-
-    /** update scoreKeyTree - insert */
-    TreeMap<String, V> newScoreRecords = scoreKeyTree.get(newScore);
-    if (newScoreRecords == null) {
-      newScoreRecords = new TreeMap<>();
-      scoreKeyTree.put(newScore, newScoreRecords);
-    }
-    newScoreRecords.put(name, newRecord);
-
-    // TreeMap<String, V> newScoreRecords =
-    //     scoreKeyTree.computeIfAbsent(
-    //         newScore, k -> new TreeMap<>()); // basically scoreKeyTree.get(newScore)
-    // newScoreRecords.put(name, newRecord);
+    /** update sortedStats */
+    sortedStats.put(name, newRecord);
     return this;
   }
 
   public List<V> toList() {
-    List<V> elements = new ArrayList<>();
+    List<V> elements = new ArrayList<>(sortedStats.values());
 
-    var entry = scoreKeyTree.firstEntry();
-
-    for (int i = 0; entry != null; entry = scoreKeyTree.lowerEntry(entry.getKey())) {
-      var scoreRecords = entry.getValue();
-      var e = scoreRecords.firstEntry();
-      for (; e != null && i < 5; e = scoreRecords.lowerEntry(e.getKey()), i++) {
-        elements.add(e.getValue());
-      }
-    }
-    return elements;
-  }
-
-  public String toString() {
-    return this.toList().stream().map(Object::toString).collect(Collectors.joining(", "));
+    // Note: the argument to compare are reversed. So, the list will be decreasing
+    elements.sort((record1, record2) -> Integer.compare(record2.getScore(), record1.getScore()));
+    List<V> top5 = elements.stream().limit(5).collect(Collectors.toList());
+    return top5;
   }
 }

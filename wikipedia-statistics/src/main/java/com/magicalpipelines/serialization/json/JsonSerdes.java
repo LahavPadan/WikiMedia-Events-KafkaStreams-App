@@ -1,8 +1,6 @@
 package com.magicalpipelines.serialization.json;
-
 import com.google.gson.reflect.TypeToken;
 import com.magicalpipelines.SortedWikiStatistic;
-import com.magicalpipelines.SortedWikiUsers;
 import com.magicalpipelines.model.*;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -27,23 +25,17 @@ public class JsonSerdes {
     return Serdes.serdeFrom(serializer, deserializer);
   }
 
-  public static Serde<SortedWikiUsers> SortedWikiUsers() {
-    JsonSerializer<SortedWikiUsers> serializer = new JsonSerializer<>();
-    JsonDeserializer<SortedWikiUsers> deserializer = new JsonDeserializer<>(SortedWikiUsers.class);
+  public static Serde<SortedWikiStatistic<WikiUser>> SortedWikiUsers() {
+    JsonSerializer<SortedWikiStatistic<WikiUser>> serializer = new JsonSerializer<>();
+    JsonDeserializer<SortedWikiStatistic<WikiUser>> deserializer =
+        new JsonDeserializer<>(new TypeToken<SortedWikiStatistic<WikiUser>>() {}.getType());
     return Serdes.serdeFrom(serializer, deserializer);
   }
 
-  public static Serde<SortedWikiStatistic<WikiPage>> SortedWikiPage() {
+  public static Serde<SortedWikiStatistic<WikiPage>> SortedWikiPages() {
     JsonSerializer<SortedWikiStatistic<WikiPage>> serializer = new JsonSerializer<>();
     JsonDeserializer<SortedWikiStatistic<WikiPage>> deserializer =
         new JsonDeserializer<>(new TypeToken<SortedWikiStatistic<WikiPage>>() {}.getType());
     return Serdes.serdeFrom(serializer, deserializer);
   }
 }
-
-// public static Serde<TreeMap<String,WikiUser>> TreeMapStringWikiUser(){
-  //   JsonSerializer<SortedWikiStatistic<WikiPage>> serializer = new JsonSerializer<>();
-  //   Type listOfTestObject = new TypeToken<TreeMap<String,WikiUser>>(){}.getType();
-  //   String s = gson.toJson(list, listOfTestObject);
-  //   List<TestObject> list2 = gson.fromJson(s, listOfTestObject);
-  // }

@@ -1,6 +1,6 @@
 package com.magicalpipelines;
 
-import com.magicalpipelines.model.WikiPage;
+import com.magicalpipelines.model.*;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import java.util.*;
@@ -39,10 +39,9 @@ class RestService {
   void start() {
     Javalin app = Javalin.create().start(hostInfo.port());
 
-    String baseUrl = "/api.wikiStats/v1/";
+    String baseUrl = "/api.wikiStats/";
 
-    // Query also the 'all' store in method
-    /** Pie charts: all entries */
+    /** all entries */
     app.get(baseUrl + "{time}/{filter}/{countType}", this::getAllCountPercentages);
 
     /** Most active queries */
@@ -136,7 +135,7 @@ class RestService {
     // validate input
 
     String storeName = String.join("-", Arrays.asList(time, filter, "MostActiveUsers"));
-    this.<SortedWikiUsers>getKey(streams, hostInfo, ctx, storeName, filterParam);
+    this.<SortedWikiStatistic<WikiUser>>getKey(streams, hostInfo, ctx, storeName, filterParam);
   }
 
   void getKeyMostActivePages(Context ctx) {

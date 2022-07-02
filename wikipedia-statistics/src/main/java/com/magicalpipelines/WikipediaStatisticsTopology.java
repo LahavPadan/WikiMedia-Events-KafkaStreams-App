@@ -17,10 +17,59 @@ import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.Printed;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 public class WikipediaStatisticsTopology {
+    
+  public static Topology build() {
+    // the builder is used to construct the topology
+    StreamsBuilder builder = new StreamsBuilder();
+
+    KStream<String, WikiEvent> wikiEvents =
+        // register the last changes stream
+        builder
+            .stream("WikiEvents", Consumed.with(Serdes.String(), JsonSerdes.WikiEvent()))
+            .selectKey((key, wikiEvent) -> "");
+
+    // all records stream
+    var allTimeRangedStreams = viewStreamInTimeRange("all", wikiEvents);
+    statefulOperations(allTimeRangedStreams);
+
+    // key by language
+    KStream<String, WikiEvent> langStreams =
+        wikiEvents.selectKey((key, wikiEvent) -> wikiEvent.getLang());
+
+    var langTimeRangedStreams = viewStreamInTimeRange("per-language", langStreams);
+    statefulOperations(langTimeRangedStreams);
+
+    // key by isBot
+    KStream<String, WikiEvent> userTypeStreams =
+        wikiEvents.selectKey((key, wikiEvent) -> wikiEvent.getIsBot().toString());
+
+    var userTypeTimeRangedStreams = viewStreamInTimeRange("per-userType", userTypeStreams);
+    statefulOperations(userTypeTimeRangedStreams);
+
+    return builder.build();
+  }
+
+  public static void statefulOperations(
+    List<Map.Entry<String, KStream<String, WikiEvent>>> timeRangedStreams) {
+  timeRangedStreams.forEach(
+      (nameStreamPair) -> countPagesCreated(nameStreamPair.getKey(), nameStreamPair.getValue()));
+
+  // Count how many pages were modified
+  timeRangedStreams.forEach(
+      (nameStreamPair) -> countPagesModified(nameStreamPair.getKey(), nameStreamPair.getValue()));
+
+  // Sort *users* by most active
+  timeRangedStreams.forEach(
+      (nameStreamPair) -> mostActiveUsers(nameStreamPair.getKey(), nameStreamPair.getValue()));
+
+  // Sort *pages* by most active
+  timeRangedStreams.forEach(
+      (nameStreamPair) -> mostActivePages(nameStreamPair.getKey(), nameStreamPair.getValue()));
+}
+    
 
   public static List<Map.Entry<String, KStream<String, WikiEvent>>> viewStreamInTimeRange(
       String streamName, KStream<String, WikiEvent> stream) {
@@ -55,9 +104,14 @@ public class WikipediaStatisticsTopology {
                       <= 1;
                 })));
 
-    //        timeRangeStreams.put("day") = stream.filter(
-    //                (key, wikiRecord)-> extractDate(wikiRecord.getDate()).equals(todayDate)
-    //        );
+    timeRangeStreams.add(
+        Map.entry(
+            "hour-" + streamName,
+            stream.filter(
+                (key, wikiEvent) -> {
+                    return ChronoUnit.HOURS.between(todayDate, Instant.parse(wikiEvent.getDate()))
+                        <= 1;
+                })));
 
     return timeRangeStreams;
   }
@@ -71,13 +125,6 @@ public class WikipediaStatisticsTopology {
         createdPagesStream
             .groupByKey(Grouped.with(Serdes.String(), JsonSerdes.WikiEvent()))
             .count(Materialized.as(streamName + "-countPagesCreated"));
-
-    createdPagesCount
-        .toStream()
-        .foreach(
-            (key, value) -> {
-              System.out.println("(DSL) ZELLO, " + value);
-            });
   }
 
   public static void countPagesModified(String streamName, KStream<String, WikiEvent> Stream) {
@@ -92,75 +139,28 @@ public class WikipediaStatisticsTopology {
   }
 
   public static void mostActiveUsers(String streamName, KStream<String, WikiEvent> stream) {
-    // System.out.println("YOLO");
-    // JsonSerializer<SortedWikiUsers> serializer = new JsonSerializer<>();
-    // serializer.serialize("WikiEvents", new SortedWikiUsers());
-
     /* Transform to WikiUser records */
-    KStream<String, WikiUser> _usersStream =
-        stream.mapValues((wikiEvent) -> new WikiUser(wikiEvent));
-
-    _usersStream.foreach(
-        (key, user) -> {
-          System.out.println("2EZ " + user.getUserName());
-        });
-
-    KGroupedStream<String, WikiUser> usersStream =
-        _usersStream.groupByKey(Grouped.with(Serdes.String(), JsonSerdes.WikiUser()));
+    KGroupedStream<String, WikiUser> usersStream = 
+        stream
+            .mapValues((wikiEvent) -> new WikiUser(wikiEvent))
+            .groupByKey(Grouped.with(Serdes.String(), JsonSerdes.WikiUser()));
 
     /** The initial value of our aggregation will be a new SortedWikiStatistic instances */
-    Initializer<SortedWikiUsers> activeUsersInitializer = SortedWikiUsers::new;
+    Initializer<SortedWikiStatistic<WikiUser>> activeUsersInitializer = SortedWikiUsers::new;
 
     /** The logic for aggregating user event is implemented in the SortedWikiStatistic.add method */
-    Aggregator<String, WikiUser, SortedWikiUsers> activeUsersAdder =
-        (key, user, aggregate) -> {
-          System.out.println("JOMANJI " + user.toString());
-          try {
-            TimeUnit.MINUTES.sleep(1000);
-          } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
-          aggregate.add("name8", new WikiUser("name8", true));
-          aggregate.add("name", new WikiUser("name1", false));
-          return aggregate.add("name", new WikiUser("name", false));
-          // return aggregate.add(user.getUserName(), user);
-        };
+    Aggregator<String, WikiUser, SortedWikiStatistic<WikiUser>> activeUsersAdder =
+        (key, user, aggregate) -> aggregate.add(user.getUserName(), user);
 
     /** Perform the aggregation, and materialize the underlying state store for querying */
-    KTable<String, SortedWikiUsers> mostActiveUsers =
+    KTable<String, SortedWikiStatistic<WikiUser>> mostActiveUsers =
         usersStream.aggregate(
             activeUsersInitializer,
             activeUsersAdder,
-            Materialized.<String, SortedWikiUsers, KeyValueStore<Bytes, byte[]>>as(
+            Materialized.<String, SortedWikiStatistic<WikiUser>, KeyValueStore<Bytes, byte[]>>as(
                     streamName + "-mostActiveUsers")
                 .withKeySerde(Serdes.String())
                 .withValueSerde(JsonSerdes.SortedWikiUsers()));
-
-    // Initializer< TreeMap<String, WikiUser> > activeUsersInitializer = ()->new TreeMap<String,
-    // WikiUser>();
-
-    // /** The logic for aggregating user event is implemented in the SortedWikiStatistic.add method
-    // */
-    // Aggregator<String, WikiUser, TreeMap<String, WikiUser> > activeUsersAdder =
-    //     (key, user, aggregate) -> SortedWikiUsers.add(aggregate, user.getUserName(), user);
-
-    // /** Perform the aggregation, and materialize the underlying state store for querying */
-    // KTable<String, TreeMap<String, WikiUser>> mostActiveUsers =
-    //     usersStream.aggregate(
-    //         activeUsersInitializer,
-    //         activeUsersAdder,
-    //         Materialized.<String, SortedWikiUsers, KeyValueStore<Bytes, byte[]>>as(
-    //                 streamName + "-mostActiveUsers")
-    //             .withKeySerde(Serdes.String())
-    //             .withValueSerde(JsonSerdes.TreeMapStringWikiUser()));
-
-    // mostActiveUsers.mapValues(
-    //     SortedWikiUsers::toString,
-    //     Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as(
-    //             streamName + "-mostActiveUsers")
-    //         .withKeySerde(Serdes.String())
-    //         .withValueSerde(Serdes.String()));
   }
 
   public static void mostActivePages(String streamName, KStream<String, WikiEvent> stream) {
@@ -187,88 +187,7 @@ public class WikipediaStatisticsTopology {
                 // queries
                 as(streamName + "-mostActivePages")
                 .withKeySerde(Serdes.String())
-                .withValueSerde(JsonSerdes.SortedWikiPage()));
+                .withValueSerde(JsonSerdes.SortedWikiPages()));
   }
 
-  public static void statefulOperations(
-      List<Map.Entry<String, KStream<String, WikiEvent>>> timeRangedStreams) {
-    timeRangedStreams.forEach(
-        (nameStreamPair) -> countPagesCreated(nameStreamPair.getKey(), nameStreamPair.getValue()));
-
-    // Count how many pages were modified
-    timeRangedStreams.forEach(
-        (nameStreamPair) -> countPagesModified(nameStreamPair.getKey(), nameStreamPair.getValue()));
-
-    // Sort *users* by most active
-    timeRangedStreams.forEach(
-        (nameStreamPair) -> mostActiveUsers(nameStreamPair.getKey(), nameStreamPair.getValue()));
-  }
-
-  public static Topology build() {
-    // SortedWikiUsers wikiusers = new SortedWikiUsers();
-    // wikiusers.add("name", new WikiUser("name", true));
-
-    // JsonSerializer json = new JsonSerializer();
-    // json.serialize("Bla", wikiusers);
-
-    // try {
-    //   TimeUnit.MINUTES.sleep(1);
-    // } catch (InterruptedException e) {
-    //   // TODO Auto-generated catch block
-    //   e.printStackTrace();
-    // }
-
-    // the builder is used to construct the topology
-    StreamsBuilder builder = new StreamsBuilder();
-
-    KStream<String, WikiEvent> wikiEvents =
-        // register the last changes stream
-        builder
-            .stream("WikiEvents", Consumed.with(Serdes.String(), JsonSerdes.WikiEvent()))
-            .selectKey((key, wikiEvent) -> "");
-
-    wikiEvents.print(Printed.<String, WikiEvent>toSysOut().withLabel("WikiEvent"));
-
-    wikiEvents.foreach(
-        (key, value) -> {
-          System.out.println("(DSL) Hello, " + value);
-        });
-
-    // all records stream
-    var allTimeRangedStreams = viewStreamInTimeRange("all", wikiEvents);
-    statefulOperations(allTimeRangedStreams);
-
-    // key by language
-    KStream<String, WikiEvent> langStreams =
-        wikiEvents.selectKey((key, wikiEvent) -> wikiEvent.getLang());
-
-    var langTimeRangedStreams = viewStreamInTimeRange("per-language", langStreams);
-    statefulOperations(langTimeRangedStreams);
-
-    // key by isBot
-    KStream<String, WikiEvent> userTypeStreams =
-        wikiEvents.selectKey((key, wikiEvent) -> wikiEvent.getIsBot().toString());
-
-    var userTypeTimeRangedStreams = viewStreamInTimeRange("per-userType", userTypeStreams);
-    statefulOperations(userTypeTimeRangedStreams);
-
-    // collect all streams
-    // List<Map.Entry<String, KStream<String, WikiEvent>>> timeRangedStreams =
-    //     Stream.of(allTimeRangedStreams, langTimeRangedStreams, userTypeTimeRangedStreams)
-    //         .flatMap(Collection::stream)
-    //         .collect(Collectors.toList());
-
-    // start collecting statistics
-
-    // Count how many pages were created
-
-    // Sort *pages* by most active
-    //        timeRangedStreams.forEach(
-    //                (nameStreamPair)->mostActivePages(nameStreamPair.getKey(),
-    // nameStreamPair.getValue()));
-
-    // Count how many revert action were committed
-
-    return builder.build();
-  }
 }

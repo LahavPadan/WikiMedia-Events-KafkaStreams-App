@@ -4,13 +4,10 @@ import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
 
 public class WikiUser implements TreeValue, Serializable {
-  @SerializedName("UserName")
   private String userName;
 
-  @SerializedName("IsBot")
   private boolean isBot;
 
-  @SerializedName("NumCommits")
   private int numCommits;
 
   public WikiUser(WikiEvent wikiEvent) {

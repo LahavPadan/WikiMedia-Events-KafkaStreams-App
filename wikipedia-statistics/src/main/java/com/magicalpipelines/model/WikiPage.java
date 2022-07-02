@@ -1,6 +1,8 @@
 package com.magicalpipelines.model;
 
-public class WikiPage implements TreeValue {
+import java.io.Serializable;
+
+public class WikiPage implements TreeValue, Serializable {
   private String title;
   private int numModifications;
 
@@ -9,9 +11,14 @@ public class WikiPage implements TreeValue {
     this.numModifications = 1;
   }
 
-  @Override
-  public int getScore() {
-    return numModifications;
+  public WikiPage(WikiPage other) {
+    this.title = other.getTitle();
+    this.numModifications = other.getNumModifications();
+  }
+
+  public WikiPage(final String title) {
+    this.title = title;
+    this.numModifications = 1;
   }
 
   public int getNumModifications() {
@@ -20,6 +27,11 @@ public class WikiPage implements TreeValue {
 
   public String getTitle() {
     return title;
+  }
+
+  @Override
+  public int getScore() {
+    return numModifications;
   }
 
   @Override
